@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080">
+<title>Slide 4</title>
+<link rel="stylesheet" href="{{STYLE_PATH}}">
+<style>
+* { box-sizing: border-box; }
+html, body { width: 1080px; height: {{HEIGHT}}px; overflow: hidden; }
+.slide { width: 1080px; height: {{HEIGHT}}px; display: flex; flex-direction: column; justify-content: space-between; padding: 60px; }
+.intro-text { font-size: 28px; font-weight: 900; text-transform: uppercase; letter-spacing: -0.5px; margin-bottom: 10px; }
+.sub-intro { font-size: 15px; color: var(--text-secondary); margin-bottom: 30px; }
+.consequences { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 0; }
+.konsequenz-number { font-size: 11px; color: var(--text-accent); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 2px; font-weight: 700; }
+.footer-area { display: flex; flex-direction: column; gap: 12px; padding-top: 20px; }
+.footer-cta { font-size: 18px; font-weight: 900; color: var(--text-primary); text-transform: uppercase; letter-spacing: 1px; }
+</style>
+</head>
+<body class="bg-gradient">
+<div class="slide">
+  <div>
+    <div class="intro-text">{{HUMOR_INTRO}}</div>
+    <div class="sub-intro">dann warten diese Schicksale auf dich:</div>
+  </div>
+  <div class="consequences">
+    <div class="humor-konsequenz">
+      <div class="konsequenz-number">01</div>
+      {{HUMOR_KONSEQUENZ_1}}
+    </div>
+    <div class="humor-konsequenz">
+      <div class="konsequenz-number">02</div>
+      {{HUMOR_KONSEQUENZ_2}}
+    </div>
+    <div class="humor-konsequenz">
+      <div class="konsequenz-number">03</div>
+      {{HUMOR_KONSEQUENZ_3}}
+    </div>
+  </div>
+  <div class="footer-area">
+    <div class="footer-cta">{{HUMOR_CTA}}</div>
+    <div class="footer-link">🔗 Deal im Profil oder in der Story • Folge @geiloder.deals</div>
+  </div>
+</div>
+</body>
+</html>

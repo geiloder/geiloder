@@ -1,0 +1,26 @@
+:root {
+  --bg-primary: #f8f8f8;
+  --bg-secondary: #ffffff;
+  --accent: #1a1a2e;
+  --text-primary: #1a1a1a;
+  --text-secondary: #666666;
+  --text-accent: #1a1a2e;
+  --badge-bg: #1a1a2e;
+  --badge-text: #ffffff;
+  --card-bg: rgba(26,26,46,0.05);
+  --border: rgba(26,26,46,0.15);
+}
+body { margin: 0; font-family: 'Inter', 'SF Pro Display', -apple-system, sans-serif; background: var(--bg-primary); color: var(--text-primary); overflow: hidden; }
+.bg-gradient { background: linear-gradient(135deg, #f8f8f8 0%, #ffffff 50%, #f0f0f0 100%); }
+.brand-tag { background: var(--badge-bg); color: var(--badge-text); font-weight: 900; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; padding: 4px 12px; border-radius: 2px; display: inline-block; }
+.discount-badge { background: var(--accent); color: #fff; font-weight: 900; font-size: 52px; border-radius: 8px; padding: 8px 16px; line-height: 1; letter-spacing: -1px; display: inline-block; }
+.product-name { font-size: 36px; font-weight: 900; line-height: 1.1; letter-spacing: -1px; text-transform: uppercase; color: var(--text-primary); }
+.product-variant { font-size: 18px; color: var(--text-secondary); font-weight: 500; letter-spacing: 1px; text-transform: uppercase; }
+.geil-oder-tag { font-size: 22px; font-weight: 900; color: var(--accent); letter-spacing: 2px; text-transform: uppercase; }
+.cta-button { background: var(--accent); color: #fff; font-weight: 900; font-size: 14px; letter-spacing: 2px; text-transform: uppercase; padding: 14px 28px; border-radius: 4px; border: none; display: inline-block; }
+.footer-link { font-size: 12px; color: var(--text-secondary); letter-spacing: 1px; }
+.benefit-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; margin-bottom: 10px; }
+.benefit-title { font-size: 20px; font-weight: 800; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; }
+.benefit-detail { font-size: 14px; color: var(--text-secondary); margin-top: 2px; }
+.humor-konsequenz { font-size: 15px; color: var(--text-primary); padding: 8px 0; border-bottom: 1px solid rgba(0,0,0,0.05); }
+.humor-konsequenz:last-child { border-bottom: none; }

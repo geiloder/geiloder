@@ -1,0 +1,26 @@
+:root {
+  --bg-primary: #0a0a0f;
+  --bg-secondary: #12121a;
+  --accent: #39ff14;
+  --text-primary: #ffffff;
+  --text-secondary: #a0a0b0;
+  --text-accent: #39ff14;
+  --badge-bg: #39ff14;
+  --badge-text: #0a0a0f;
+  --card-bg: rgba(255,255,255,0.05);
+  --border: rgba(57,255,20,0.2);
+}
+body { margin: 0; font-family: 'Inter', 'SF Pro Display', -apple-system, sans-serif; background: var(--bg-primary); color: var(--text-primary); overflow: hidden; }
+.bg-gradient { background: radial-gradient(ellipse at 20% 50%, rgba(57,255,20,0.15) 0%, transparent 50%), radial-gradient(ellipse at 80% 20%, rgba(57,255,20,0.08) 0%, transparent 40%), linear-gradient(135deg, #0a0a0f 0%, #12121a 50%, #0f0f18 100%); }
+.brand-tag { background: var(--badge-bg); color: var(--badge-text); font-weight: 900; font-size: 11px; letter-spacing: 3px; text-transform: uppercase; padding: 4px 12px; border-radius: 2px; display: inline-block; }
+.discount-badge { background: var(--accent); color: #000; font-weight: 900; font-size: 52px; border-radius: 8px; padding: 8px 16px; line-height: 1; letter-spacing: -1px; display: inline-block; }
+.product-name { font-size: 38px; font-weight: 900; line-height: 1.1; letter-spacing: -1px; text-transform: uppercase; color: var(--text-primary); }
+.product-variant { font-size: 18px; color: var(--text-secondary); font-weight: 500; letter-spacing: 1px; text-transform: uppercase; }
+.geil-oder-tag { font-size: 22px; font-weight: 900; color: var(--accent); letter-spacing: 2px; text-transform: uppercase; }
+.cta-button { background: var(--accent); color: #000; font-weight: 900; font-size: 14px; letter-spacing: 2px; text-transform: uppercase; padding: 14px 28px; border-radius: 4px; border: none; display: inline-block; }
+.footer-link { font-size: 12px; color: var(--text-secondary); letter-spacing: 1px; }
+.benefit-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; margin-bottom: 10px; }
+.benefit-title { font-size: 20px; font-weight: 800; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; }
+.benefit-detail { font-size: 14px; color: var(--text-secondary); margin-top: 2px; }
+.humor-konsequenz { font-size: 15px; color: var(--text-primary); padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+.humor-konsequenz:last-child { border-bottom: none; }

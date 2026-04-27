@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080">
+<title>Slide 2</title>
+<link rel="stylesheet" href="{{STYLE_PATH}}">
+<style>
+* { box-sizing: border-box; }
+html, body { width: 1080px; height: {{HEIGHT}}px; overflow: hidden; }
+.slide { width: 1080px; height: {{HEIGHT}}px; display: flex; flex-direction: column; justify-content: space-between; padding: 60px; }
+.section-tag { font-size: 12px; letter-spacing: 4px; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 8px; }
+.section-title { font-size: 34px; font-weight: 900; text-transform: uppercase; letter-spacing: -0.5px; margin-bottom: 30px; }
+.benefits { display: flex; flex-direction: column; gap: 12px; flex: 1; justify-content: center; }
+.footer { padding-top: 20px; }
+</style>
+</head>
+<body class="bg-gradient">
+<div class="slide">
+  <div>
+    <div class="section-tag">Warum ist das geil?</div>
+    <div class="section-title">WARUM DER DEAL<br>GEIL IST</div>
+  </div>
+  <div class="benefits">
+    <div class="benefit-card">
+      <div class="benefit-title">{{BENEFIT_1}}</div>
+      <div class="benefit-detail">{{BENEFIT_1_DETAIL}}</div>
+    </div>
+    <div class="benefit-card">
+      <div class="benefit-title">{{BENEFIT_2}}</div>
+      <div class="benefit-detail">{{BENEFIT_2_DETAIL}}</div>
+    </div>
+    <div class="benefit-card">
+      <div class="benefit-title">{{BENEFIT_3}}</div>
+      <div class="benefit-detail">{{BENEFIT_3_DETAIL}}</div>
+    </div>
+  </div>
+  <div class="footer">
+    <div class="footer-link">🔗 Link im Profil • @geiloder.deals</div>
+  </div>
+</div>
+</body>
+</html>
