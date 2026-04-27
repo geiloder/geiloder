@@ -1,0 +1,3 @@
+aw_product_id,product_name,brand_name,merchant_name,store_price,rrp_price,aw_deep_link,merchant_image_url,large_image,merchant_product_url,stock_quantity,valid_to
+TEST001,More Creatine+ Gummies Green Apple,More Nutrition,More Nutrition Shop,14.99,19.99,https://www.awin1.com/cread.php?awinmid=TEST001,https://more-nutrition.de/img/creatine-gummies.jpg,https://more-nutrition.de/img/creatine-gummies.jpg,https://more-nutrition.de/products/creatine-gummies,50,2026-12-31
+TEST002,ESN Designer Whey Protein Vanilla 908g,ESN,ESN Shop,24.99,34.99,https://www.awin1.com/cread.php?awinmid=TEST002,https://esn.com/img/designer-whey.jpg,https://esn.com/img/designer-whey.jpg,https://esn.com/products/designer-whey,120,2026-12-31
