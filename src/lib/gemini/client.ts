@@ -11,7 +11,7 @@ export async function generateWithRetry(prompt: string, maxRetries = 3): Promise
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const completion = await client.chat.completions.create({
-        model: 'llama-3.1-70b-versatile',
+        model: 'llama-3.3-70b-versatile',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.8,
         max_tokens: 2048,
