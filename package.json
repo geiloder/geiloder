@@ -25,6 +25,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dotenv": "^17.4.2",
+    "groq-sdk": "^1.1.2",
     "lucide-react": "^1.11.0",
     "next": "14.2.35",
     "papaparse": "^5.5.3",
