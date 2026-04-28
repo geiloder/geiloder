@@ -9,6 +9,11 @@ const nextConfig = {
       { protocol: 'https', hostname: '**.supabase.co' },
       { protocol: 'https', hostname: '**.cdninstagram.com' },
       { protocol: 'https', hostname: '**.more-nutrition.de' },
+      { protocol: 'https', hostname: 'more-nutrition.de' },
+      { protocol: 'https', hostname: 'esn.com' },
+      { protocol: 'https', hostname: '**.esn.com' },
+      // Broad fallback for affiliate CDNs — tighten in production
+      { protocol: 'https', hostname: '**' },
     ],
   },
 }

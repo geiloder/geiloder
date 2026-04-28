@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
+import { Header } from '@/components/header'
+import { Footer } from '@/components/footer'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -10,9 +12,7 @@ export const metadata: Metadata = {
     template: '%s | Geil oder?',
   },
   description: 'Täglich kuratierte Deals aus Fitness, Supplements, Home Gym und mehr.',
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL ?? 'https://geiloder.vercel.app'
-  ),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'https://geiloder.vercel.app'),
   openGraph: {
     siteName: 'Geil oder?',
     locale: 'de_DE',
@@ -20,15 +20,13 @@ export const metadata: Metadata = {
   },
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="de" className="dark">
       <body className={`${inter.className} bg-zinc-950 text-white min-h-screen`}>
-        {children}
+        <Header />
+        <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
+        <Footer />
       </body>
     </html>
   )

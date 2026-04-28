@@ -1,4 +1,4 @@
-import { createClient } from './server'
+import { createClient, createServiceClient } from './server'
 import type { Deal } from '@/types'
 
 export async function getApprovedDeals(options: {
@@ -6,7 +6,7 @@ export async function getApprovedDeals(options: {
   offset?: number
   kategorie?: string
 } = {}): Promise<Deal[]> {
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   let query = supabase
     .from('deals')
     .select('*')
@@ -27,7 +27,7 @@ export async function getApprovedDeals(options: {
 }
 
 export async function getDealBySlug(slug: string): Promise<Deal | null> {
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   const { data, error } = await supabase
     .from('deals')
     .select('*')
@@ -40,7 +40,7 @@ export async function getDealBySlug(slug: string): Promise<Deal | null> {
 }
 
 export async function getDealById(id: string): Promise<Deal | null> {
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   const { data, error } = await supabase
     .from('deals')
     .select('*')
@@ -52,7 +52,7 @@ export async function getDealById(id: string): Promise<Deal | null> {
 }
 
 export async function getSimilarDeals(deal: Deal, limit = 4): Promise<Deal[]> {
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   const { data, error } = await supabase
     .from('deals')
     .select('*')
@@ -67,7 +67,6 @@ export async function getSimilarDeals(deal: Deal, limit = 4): Promise<Deal[]> {
 }
 
 export async function getAllDealsForAdmin(): Promise<Deal[]> {
-  const { createServiceClient } = await import('./server')
   const supabase = createServiceClient()
   const { data, error } = await supabase
     .from('deals')

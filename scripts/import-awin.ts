@@ -122,11 +122,22 @@ async function importAwinFeed(feedUrl: string, provision: number) {
   console.log(`Import complete: ${newDeals.length} new deals added`)
 }
 
-const feedUrl = process.env.AWIN_FEED_URL
-if (!feedUrl) {
-  console.error('AWIN_FEED_URL environment variable not set')
+const feedUrls = (process.env.AWIN_FEED_URLS ?? process.env.AWIN_FEED_URL ?? '')
+  .split(',')
+  .map((u) => u.trim())
+  .filter(Boolean)
+
+if (feedUrls.length === 0) {
+  console.error('AWIN_FEED_URL or AWIN_FEED_URLS environment variable not set')
   process.exit(1)
 }
 
 const provision = parseFloat(process.env.AWIN_DEFAULT_PROVISION ?? '5')
-importAwinFeed(feedUrl, provision).catch(console.error)
+
+async function main() {
+  for (const url of feedUrls) {
+    await importAwinFeed(url, provision)
+  }
+}
+
+main().catch(console.error)
