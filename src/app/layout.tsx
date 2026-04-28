@@ -24,6 +24,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="de" className="dark">
       <body className={`${inter.className} bg-zinc-950 text-white min-h-screen`}>
+        <div className="bg-yellow-400 text-black text-center text-xs font-bold py-2 px-4">
+          🚧 Demo-Version — Die angezeigten Deals sind Beispiele. Echte Affiliate-Deals folgen nach Partnerfreigabe.
+        </div>
         <Header />
         <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
         <Footer />
