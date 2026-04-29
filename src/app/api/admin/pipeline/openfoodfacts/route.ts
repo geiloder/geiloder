@@ -5,7 +5,7 @@ import { scoreDiscoveryProduct } from '@/lib/discovery/scoring'
 import type { Deal, DealKategorie, ProductFacts } from '@/types'
 
 export const dynamic = 'force-dynamic'
-export const maxDuration = 30
+export const maxDuration = 60
 
 interface OpenFoodFactsProduct {
   code?: string
@@ -93,30 +93,46 @@ function getQueries(): string[] {
 
 async function fetchProducts(query: string, pageSize: number): Promise<OpenFoodFactsProduct[]> {
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 8000)
-  const url = new URL('https://world.openfoodfacts.org/cgi/search.pl')
-  url.searchParams.set('search_terms', query)
-  url.searchParams.set('search_simple', '1')
-  url.searchParams.set('action', 'process')
-  url.searchParams.set('json', '1')
-  url.searchParams.set('page_size', String(pageSize))
-  url.searchParams.set('fields', FIELDS)
+  const timeout = setTimeout(() => controller.abort(), 20000)
 
   try {
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': process.env.OPENFOODFACTS_USER_AGENT?.trim() || 'geiloder/0.1 (contact: hello@geiloder.de)',
-      },
-      next: { revalidate: 0 },
-      signal: controller.signal,
-    })
-    if (!response.ok) throw new Error(`Open Food Facts HTTP ${response.status}`)
+    const v2Url = new URL('https://world.openfoodfacts.org/api/v2/search')
+    v2Url.searchParams.set('search_terms', query)
+    v2Url.searchParams.set('page_size', String(pageSize))
+    v2Url.searchParams.set('fields', FIELDS)
+    v2Url.searchParams.set('sort_by', 'last_modified_t')
 
-    const json = await response.json() as { products?: OpenFoodFactsProduct[] }
-    return json.products ?? []
+    const products = await fetchProductsUrl(v2Url, controller.signal)
+    if (products.length > 0) return products
+
+    const legacyUrl = new URL('https://world.openfoodfacts.org/cgi/search.pl')
+    legacyUrl.searchParams.set('search_terms', query)
+    legacyUrl.searchParams.set('search_simple', '1')
+    legacyUrl.searchParams.set('action', 'process')
+    legacyUrl.searchParams.set('json', '1')
+    legacyUrl.searchParams.set('page_size', String(pageSize))
+    legacyUrl.searchParams.set('fields', FIELDS)
+    legacyUrl.searchParams.set('sort_by', 'last_modified_t')
+
+    return await fetchProductsUrl(legacyUrl, controller.signal)
   } finally {
     clearTimeout(timeout)
   }
+}
+
+async function fetchProductsUrl(url: URL, signal: AbortSignal): Promise<OpenFoodFactsProduct[]> {
+  const response = await fetch(url, {
+    headers: {
+      'User-Agent': process.env.OPENFOODFACTS_USER_AGENT?.trim() || 'geiloder/0.1 (contact: hello@geiloder.de)',
+      'Accept': 'application/json',
+    },
+    cache: 'no-store',
+    signal,
+  })
+  if (!response.ok) throw new Error(`Open Food Facts HTTP ${response.status}`)
+
+  const json = await response.json() as { products?: OpenFoodFactsProduct[] }
+  return json.products ?? []
 }
 
 function normalizeProduct(product: OpenFoodFactsProduct) {
@@ -192,9 +208,9 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = createServiceClient()
-    const pageSize = Math.min(Number.parseInt(process.env.OPENFOODFACTS_PAGE_SIZE?.trim() || '12', 10) || 12, 20)
+    const pageSize = Math.min(Number.parseInt(process.env.OPENFOODFACTS_PAGE_SIZE?.trim() || '8', 10) || 8, 12)
     const productsByBarcode = new Map<string, OpenFoodFactsProduct>()
-    const queries = getQueries().slice(0, 6)
+    const queries = getQueries().slice(0, 4)
     const results = await Promise.allSettled(queries.map((query) => fetchProducts(query, pageSize)))
 
     for (const result of results) {
@@ -209,12 +225,16 @@ export async function POST(request: NextRequest) {
       .filter((deal): deal is NonNullable<typeof deal> => deal !== null)
 
     if (normalized.length === 0) {
-      const failed = results.filter((result) => result.status === 'rejected').length
+      const failedMessages = results
+        .map((result, index) => result.status === 'rejected'
+          ? `${queries[index]}: ${result.reason instanceof Error ? result.reason.message : String(result.reason)}`
+          : null)
+        .filter((message): message is string => message !== null)
       return NextResponse.json({
         imported: 0,
         skipped: 0,
-        message: failed > 0
-          ? `Keine nutzbaren Produkte gefunden. ${failed} Open-Food-Facts-Abfragen sind fehlgeschlagen.`
+        message: failedMessages.length > 0
+          ? `Keine nutzbaren Produkte gefunden. Fehler: ${failedMessages.join(' | ')}`
           : 'Keine nutzbaren Open-Food-Facts-Produkte gefunden.',
       })
     }
