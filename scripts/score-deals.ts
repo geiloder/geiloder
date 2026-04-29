@@ -3,6 +3,7 @@ config({ path: '.env.local' })
 
 import { createServiceClient } from '../src/lib/supabase/server'
 import { scoreDeal, checkAntiSpam } from '../src/lib/scoring'
+import { scoreDiscoveryProduct } from '../src/lib/discovery/scoring'
 import { generateDealSlug } from '../src/lib/utils'
 import type { Deal, AntiSpamContext } from '../src/types'
 
@@ -73,7 +74,9 @@ async function scoreAllNewDeals() {
       continue
     }
 
-    const { score, tier } = scoreDeal(deal)
+    const { score, tier } = deal.content_type === 'product_discovery'
+      ? scoreDiscoveryProduct(deal)
+      : scoreDeal(deal)
 
     if (tier === 'ignore') {
       await supabase.from('deals').update({ status: 'rejected', deal_score: score }).eq('id', deal.id)

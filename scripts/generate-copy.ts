@@ -5,7 +5,7 @@ import { createServiceClient } from '../src/lib/supabase/server'
 import { generateWithRetry } from '../src/lib/gemini/client'
 import { buildDealCopyPrompt } from '../src/lib/gemini/prompts'
 import { parseDealCopyResponse } from '../src/lib/gemini/schema'
-import { checkCompliance, ensureAffiliateDisclosure } from '../src/lib/gemini/compliance'
+import { checkCompliance, ensureAffiliateDisclosure, ensureUnpaidDisclosure } from '../src/lib/gemini/compliance'
 import type { Deal, DealCopy } from '../src/types'
 
 const DELAY_MS = 4200 // Gemini Flash: 15 req/min free tier
@@ -16,7 +16,9 @@ async function generateCopyForDeal(deal: Deal): Promise<DealCopy | null> {
     const parsed = parseDealCopyResponse(rawResponse)
 
     const hashtags = parsed.hashtags.map((h) => (h.startsWith('#') ? h : `#${h}`))
-    const caption = ensureAffiliateDisclosure(parsed.caption)
+    const caption = deal.content_type === 'product_discovery'
+      ? ensureUnpaidDisclosure(parsed.caption)
+      : ensureAffiliateDisclosure(parsed.caption)
     const copy: DealCopy = { ...parsed, hashtags, caption }
 
     const { passed, violations, sanitized } = checkCompliance(copy)

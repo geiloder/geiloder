@@ -1,7 +1,7 @@
 'use client'
 import Image from 'next/image'
 import { useState } from 'react'
-import { formatPrice, formatDiscount } from '@/lib/utils'
+import { formatPrice, formatDiscount, isDiscoveryDeal } from '@/lib/utils'
 import type { Deal, DealStatus } from '@/types'
 
 interface DealRowProps {
@@ -35,6 +35,7 @@ export function DealRow({ deal, onStatusChange }: DealRowProps) {
   }
 
   const copy = deal.copy_data
+  const discovery = isDiscoveryDeal(deal)
 
   return (
     <>
@@ -50,11 +51,15 @@ export function DealRow({ deal, onStatusChange }: DealRowProps) {
         </td>
         <td className="p-3">
           <p className="text-sm font-medium text-white line-clamp-2">{deal.produktname}</p>
-          <p className="text-xs text-zinc-500">{deal.shop} · {deal.kategorie}</p>
+          <p className="text-xs text-zinc-500">
+            {discovery ? 'Open Food Facts · Produkt-Check' : `${deal.shop} · ${deal.kategorie}`}
+          </p>
         </td>
         <td className="p-3 text-right">
-          <p className="text-sm font-bold text-white">{formatPrice(deal.deal_preis)}</p>
-          {deal.rabatt_prozent && (
+          <p className="text-sm font-bold text-white">
+            {discovery ? 'kein Preis' : formatPrice(deal.deal_preis)}
+          </p>
+          {!discovery && deal.rabatt_prozent && (
             <p className="text-xs text-green-400">{formatDiscount(deal.rabatt_prozent)}</p>
           )}
         </td>

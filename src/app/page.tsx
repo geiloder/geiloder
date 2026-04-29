@@ -17,10 +17,10 @@ export default async function HomePage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-black tracking-tight">
-          Geil oder? <span className="text-zinc-400 font-normal text-lg">Tägliche Deals</span>
+          Geil oder? <span className="text-zinc-400 font-normal text-lg">Deals & Produktchecks</span>
         </h1>
         <p className="mt-1 text-zinc-500 text-sm">
-          Täglich kuratierte Fitness-Deals. Nicht weil du musst. Sondern weil Vollpreis keine Lösung ist.
+          Täglich kuratierte Fitness-Funds. Erstmal ohne Affiliate: Produktchecks, Snacks und später echte Deals.
         </p>
       </div>
 

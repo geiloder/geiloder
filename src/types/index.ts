@@ -20,6 +20,22 @@ export type DealKategorie =
   | 'sonstige'
 
 export type DealQuelle = 'awin' | 'adcell' | 'amazon' | 'manuell'
+export type ContentType = 'affiliate_deal' | 'product_discovery'
+export type MonetizationType = 'affiliate' | 'none'
+
+export interface ProductFacts {
+  quantity?: string | null
+  protein_100g?: number | null
+  protein_serving?: number | null
+  sugar_100g?: number | null
+  sugar_serving?: number | null
+  calories_100g?: number | null
+  calories_serving?: number | null
+  fat_100g?: number | null
+  carbs_100g?: number | null
+  fiber_100g?: number | null
+  nutriscore_grade?: string | null
+}
 
 export interface Deal {
   id: string
@@ -46,6 +62,15 @@ export interface Deal {
   expires_at: string | null
   posted_at: string | null
   updated_at: string
+  content_type?: ContentType | null
+  source_name?: string | null
+  source_url?: string | null
+  barcode?: string | null
+  image_license?: string | null
+  image_rights_status?: string | null
+  attribution_text?: string | null
+  monetization_type?: MonetizationType | null
+  product_facts?: ProductFacts | null
 }
 
 export interface DealCopy {

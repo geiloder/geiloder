@@ -80,5 +80,14 @@ export function normalizeRawDeal(raw: RawFeedDeal): Omit<Deal, 'id' | 'created_a
     slug: generateDealSlug(raw.produktname, placeholderId),
     expires_at: raw.expires_at ?? null,
     posted_at: null,
+    content_type: 'affiliate_deal',
+    source_name: raw.quelle,
+    source_url: raw.landingpage_url ?? null,
+    barcode: null,
+    image_license: null,
+    image_rights_status: raw.produktbild_url ? 'affiliate_feed' : null,
+    attribution_text: null,
+    monetization_type: 'affiliate',
+    product_facts: null,
   }
 }

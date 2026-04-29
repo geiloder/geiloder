@@ -48,6 +48,10 @@ function fillTemplate(
   return html
 }
 
+function isDiscovery(deal: Deal): boolean {
+  return deal.content_type === 'product_discovery' || deal.monetization_type === 'none'
+}
+
 async function renderSlide(
   browser: Awaited<ReturnType<typeof chromium.launch>>,
   deal: Deal,
@@ -76,9 +80,20 @@ async function renderSlide(
     HUMOR_KONSEQUENZ_2: copy.humor_konsequenz_2,
     HUMOR_KONSEQUENZ_3: copy.humor_konsequenz_3,
     HUMOR_CTA: copy.humor_cta,
-    RABATT: deal.rabatt_prozent ? `-${Math.round(deal.rabatt_prozent)}%` : 'DEAL',
+    RABATT: isDiscovery(deal) ? 'CHECK' : deal.rabatt_prozent ? `-${Math.round(deal.rabatt_prozent)}%` : 'DEAL',
     VERFUEGBARKEIT: deal.verfuegbarkeit ? `Noch ${deal.verfuegbarkeit} verfügbar` : '',
     PRODUKTBILD_URL: deal.produktbild_url ?? '',
+    MODE_LABEL: isDiscovery(deal) ? 'PRODUKT-CHECK' : 'TOP DEAL',
+    HERO_CTA: isDiscovery(deal) ? 'GEIL ODER?' : 'JETZT DEAL ANSEHEN',
+    FOOTER_LINK: isDiscovery(deal)
+      ? 'Unbezahlt recherchiert • Kein Affiliate-Link'
+      : 'Link im Profil • @geiloder.deals',
+    LIVE_LABEL: isDiscovery(deal) ? 'CHECK LIVE' : 'DEAL LIVE',
+    SLIDE3_TITLE: isDiscovery(deal) ? `${copy.headline}` : `${deal.rabatt_prozent ? `-${Math.round(deal.rabatt_prozent)}%` : 'DEAL'} AUF<br>${copy.headline}`,
+    LINK_HINT: isDiscovery(deal) ? 'Sag uns: geil oder eher ungeil?' : 'Link im Profil oder in der Story',
+    FOLLOW_TEXT: isDiscovery(deal)
+      ? 'Folge @geiloder.deals<br>für tägliche Gym-Funds'
+      : 'Folge <span class="handle">@geiloder.deals</span><br>für tägliche Fitness-Deals',
   }
 
   const html = fillTemplate(template, vars, size, stylePath)

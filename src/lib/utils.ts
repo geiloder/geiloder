@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import type { Deal } from '@/types'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -39,4 +40,8 @@ export function hashIp(ip: string): string {
     hash = hash & hash
   }
   return Math.abs(hash).toString(36)
+}
+
+export function isDiscoveryDeal(deal: Pick<Deal, 'content_type' | 'monetization_type'>): boolean {
+  return deal.content_type === 'product_discovery' || deal.monetization_type === 'none'
 }

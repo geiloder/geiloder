@@ -11,6 +11,7 @@
     "test:watch": "vitest",
     "import:awin": "tsx scripts/import-awin.ts",
     "import:adcell": "tsx scripts/import-adcell.ts",
+    "import:openfoodfacts": "tsx scripts/import-openfoodfacts.ts",
     "score": "tsx scripts/score-deals.ts",
     "generate:copy": "tsx scripts/generate-copy.ts",
     "render": "tsx scripts/render-slides.ts",

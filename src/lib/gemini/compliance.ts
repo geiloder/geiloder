@@ -80,3 +80,11 @@ export function ensureAffiliateDisclosure(caption: string): string {
   }
   return caption
 }
+
+export function ensureUnpaidDisclosure(caption: string): string {
+  const requiredText = 'Unbezahlt recherchiert | Kein Affiliate-Link'
+  if (!caption.includes(requiredText)) {
+    return `${requiredText}\n\n${caption}`
+  }
+  return caption.replace(/Anzeige \| Affiliate-Link\.?/g, requiredText)
+}
