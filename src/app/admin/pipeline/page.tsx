@@ -27,7 +27,7 @@ export default async function AdminPipelinePage() {
     { label: '1. Open Food Facts importieren', command: 'npm run import:openfoodfacts', note: 'Holt Protein-/Fitness-Produkte ohne Affiliate.' },
     { label: '2. Produkte scoren', command: 'npm run score', note: 'Bewertet Bild, Marke, Protein, Zucker und Social-Potenzial.' },
     { label: '3. Copy generieren', command: 'npm run generate:copy', note: 'Erstellt Produktcheck-Texte mit Groq ohne Kauf-Claims.' },
-    { label: '4. Slides rendern', command: 'npm run render', note: 'Erzeugt Feed- und Story-PNGs für Review/Download.' },
+    { label: '4. GPT-Slides hochladen', command: '/admin/prep/[produkt]', note: 'Du erstellst die Slides in GPT und lädst die 4 PNGs danach hier hoch.' },
   ]
 
   return (
