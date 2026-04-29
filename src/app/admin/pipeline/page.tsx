@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { createServiceClient } from '@/lib/supabase/server'
+import { PipelineActions } from '@/components/admin/pipeline-actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -37,6 +38,8 @@ export default async function AdminPipelinePage() {
           MVP ohne Affiliate: Produkte finden, scoren, Copy schreiben, Slides rendern und manuell posten.
         </p>
       </div>
+
+      <PipelineActions />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
