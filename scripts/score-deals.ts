@@ -74,7 +74,8 @@ async function scoreAllNewDeals() {
       continue
     }
 
-    const { score, tier } = isDiscoveryDeal(deal)
+    const discovery = isDiscoveryDeal(deal)
+    const { score, tier } = discovery
       ? scoreDiscoveryProduct(deal)
       : scoreDeal(deal)
 
@@ -84,7 +85,12 @@ async function scoreAllNewDeals() {
       continue
     }
 
-    const spamCheck = checkAntiSpam(deal, antiSpamContext)
+    const spamCheck = discovery
+      ? {
+          blocked: antiSpamContext.recentProducts.has(deal.produktname.toLowerCase().slice(0, 50)),
+          reason: 'Produkt bereits in letzten 72h gepostet',
+        }
+      : checkAntiSpam(deal, antiSpamContext)
     if (spamCheck.blocked) {
       await supabase.from('deals').update({ status: 'rejected', deal_score: score }).eq('id', deal.id)
       console.log(`  SPAM-BLOCKED: ${deal.produktname} — ${spamCheck.reason}`)

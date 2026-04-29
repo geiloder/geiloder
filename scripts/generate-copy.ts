@@ -11,6 +11,10 @@ import type { Deal, DealCopy } from '../src/types'
 
 const DELAY_MS = 4200 // Gemini Flash: 15 req/min free tier
 
+function hasGeneratedCopy(deal: Deal): boolean {
+  return Boolean((deal.copy_data as Partial<DealCopy> | null)?.headline)
+}
+
 async function generateCopyForDeal(deal: Deal): Promise<DealCopy | null> {
   try {
     const rawResponse = await generateWithRetry(buildDealCopyPrompt(deal))
@@ -42,13 +46,12 @@ async function generateCopyForAllApproved() {
     .from('deals')
     .select('*')
     .eq('status', 'approved')
-    .is('copy_data', null)
     .order('deal_score', { ascending: false })
-    .limit(50)
+    .limit(100)
 
   if (error) throw error
 
-  const deals = (data ?? []) as Deal[]
+  const deals = ((data ?? []) as Deal[]).filter((deal) => !hasGeneratedCopy(deal)).slice(0, 50)
   console.log(`Generating copy for ${deals.length} deals...`)
 
   if (deals.length === 0) {

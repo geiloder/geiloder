@@ -10,14 +10,30 @@ interface SearchResponse {
 
 const DEFAULT_QUERIES = [
   'protein bar',
+  'protein bars',
   'high protein pudding',
   'whey protein',
+  'whey isolate',
   'protein drink',
+  'protein shake',
+  'protein smoothie',
   'creatine',
+  'kreatin',
   'esn',
   'evo sports nutrition',
   'barebells',
   'ehrmann high protein',
+  'more nutrition',
+  'myprotein',
+  'powerbar',
+  'body attack',
+  'foodspring',
+  'protein cookie',
+  'protein brownie',
+  'protein chips',
+  'high protein yoghurt',
+  'energy drink',
+  'zero sugar protein',
 ]
 
 const FIELDS = [
@@ -40,18 +56,35 @@ function getQueries(): string[] {
     .filter(Boolean)
 }
 
-async function fetchProducts(query: string, pageSize: number): Promise<OpenFoodFactsProduct[]> {
-  const url = new URL('https://world.openfoodfacts.org/cgi/search.pl')
-  url.searchParams.set('search_terms', query)
-  url.searchParams.set('search_simple', '1')
-  url.searchParams.set('action', 'process')
-  url.searchParams.set('json', '1')
-  url.searchParams.set('page_size', String(pageSize))
-  url.searchParams.set('fields', FIELDS)
+async function fetchProductsPage(query: string, pageSize: number, page: number): Promise<OpenFoodFactsProduct[]> {
+  const v2Url = new URL('https://world.openfoodfacts.org/api/v2/search')
+  v2Url.searchParams.set('search_terms', query)
+  v2Url.searchParams.set('page_size', String(pageSize))
+  v2Url.searchParams.set('page', String(page))
+  v2Url.searchParams.set('fields', FIELDS)
+  v2Url.searchParams.set('sort_by', 'last_modified_t')
 
+  const v2Products = await fetchProductsUrl(v2Url)
+  if (v2Products.length > 0) return v2Products
+
+  const legacyUrl = new URL('https://world.openfoodfacts.org/cgi/search.pl')
+  legacyUrl.searchParams.set('search_terms', query)
+  legacyUrl.searchParams.set('search_simple', '1')
+  legacyUrl.searchParams.set('action', 'process')
+  legacyUrl.searchParams.set('json', '1')
+  legacyUrl.searchParams.set('page_size', String(pageSize))
+  legacyUrl.searchParams.set('page', String(page))
+  legacyUrl.searchParams.set('fields', FIELDS)
+  legacyUrl.searchParams.set('sort_by', 'last_modified_t')
+
+  return fetchProductsUrl(legacyUrl)
+}
+
+async function fetchProductsUrl(url: URL): Promise<OpenFoodFactsProduct[]> {
   const response = await fetch(url, {
     headers: {
       'User-Agent': process.env.OPENFOODFACTS_USER_AGENT?.trim() || 'geiloder/0.1 (contact: hello@geiloder.de)',
+      'Accept': 'application/json',
     },
   })
   if (!response.ok) throw new Error(`Open Food Facts HTTP ${response.status}`)
@@ -60,21 +93,51 @@ async function fetchProducts(query: string, pageSize: number): Promise<OpenFoodF
   return json.products ?? []
 }
 
+function positiveInt(value: string | undefined, fallback: number): number {
+  const parsed = Number.parseInt(value?.trim() || String(fallback), 10)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
+}
+
+function rotate<T>(items: T[], offset: number): T[] {
+  if (items.length === 0) return items
+  const normalizedOffset = offset % items.length
+  return [...items.slice(normalizedOffset), ...items.slice(0, normalizedOffset)]
+}
+
+function daySeed(date = new Date()): number {
+  const start = Date.UTC(date.getUTCFullYear(), 0, 0)
+  const current = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
+  return Math.floor((current - start) / 86_400_000)
+}
+
 async function importOpenFoodFacts() {
   const supabase = createServiceClient()
-  const parsedPageSize = Number.parseInt(process.env.OPENFOODFACTS_PAGE_SIZE?.trim() || '30', 10)
-  const pageSize = Number.isFinite(parsedPageSize) ? parsedPageSize : 30
-  const queries = getQueries()
+  const pageSize = Math.min(positiveInt(process.env.OPENFOODFACTS_PAGE_SIZE, 30), 50)
+  const targetCount = Math.min(positiveInt(process.env.OPENFOODFACTS_TARGET_COUNT, 50), 50)
+  const maxPages = Math.min(positiveInt(process.env.OPENFOODFACTS_MAX_PAGES, 8), 20)
+  const seed = daySeed()
+  const queries = rotate(getQueries(), seed)
 
   console.log(`Importing Open Food Facts products for ${queries.length} queries...`)
+  console.log(`Target: ${targetCount} new products, page size: ${pageSize}, max pages/query: ${maxPages}`)
 
   const byBarcode = new Map<string, OpenFoodFactsProduct>()
-  for (const query of queries) {
-    console.log(`  Query: ${query}`)
-    const products = await fetchProducts(query, pageSize)
-    for (const product of products) {
-      if (product.code && !byBarcode.has(product.code)) byBarcode.set(product.code, product)
+  const candidateTarget = targetCount * 4
+
+  for (let queryIndex = 0; queryIndex < queries.length; queryIndex++) {
+    const query = queries[queryIndex]
+    const pageStart = ((seed + queryIndex) % maxPages) + 1
+    const pages = rotate(Array.from({ length: maxPages }, (_, i) => i + 1), pageStart - 1)
+
+    for (const page of pages) {
+      console.log(`  Query: ${query} (page ${page})`)
+      const products = await fetchProductsPage(query, pageSize, page)
+      for (const product of products) {
+        if (product.code && !byBarcode.has(product.code)) byBarcode.set(product.code, product)
+      }
+      if (byBarcode.size >= candidateTarget) break
     }
+    if (byBarcode.size >= candidateTarget) break
   }
 
   const normalized = Array.from(byBarcode.values())
@@ -93,10 +156,12 @@ async function importOpenFoodFacts() {
     .in('external_id', normalized.map((d) => d.external_id).filter(Boolean))
 
   const existingKeys = new Set((existing ?? []).map((d) => `${d.quelle}::${d.external_id}`))
-  const newDeals = normalized.filter((d) => !existingKeys.has(`manuell::${d.external_id}`))
+  const newDeals = normalized
+    .filter((d) => !existingKeys.has(`manuell::${d.external_id}`))
+    .slice(0, targetCount)
 
   if (newDeals.length === 0) {
-    console.log('No new Open Food Facts products to import.')
+    console.log(`No new Open Food Facts products to import. Checked ${normalized.length} usable candidates.`)
     return
   }
 

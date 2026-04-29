@@ -53,6 +53,10 @@ function isDiscovery(deal: Deal): boolean {
   return isDiscoveryDeal(deal)
 }
 
+function hasGeneratedCopy(deal: Deal): boolean {
+  return Boolean((deal.copy_data as Partial<DealCopy> | null)?.headline)
+}
+
 async function renderSlide(
   browser: Awaited<ReturnType<typeof chromium.launch>>,
   deal: Deal,
@@ -142,13 +146,12 @@ async function renderApprovedDeals() {
     .from('deals')
     .select('*')
     .eq('status', 'approved')
-    .not('copy_data', 'is', null)
     .order('deal_score', { ascending: false })
-    .limit(20)
+    .limit(60)
 
   if (error) throw error
 
-  const deals = (data ?? []) as Deal[]
+  const deals = ((data ?? []) as Deal[]).filter(hasGeneratedCopy).slice(0, 20)
   console.log(`Rendering ${deals.length} deals...`)
   if (deals.length === 0) { console.log('No deals to render.'); return }
 
