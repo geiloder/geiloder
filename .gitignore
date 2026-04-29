@@ -35,6 +35,7 @@ yarn-error.log*
 # temp render files
 /.tmp-renders/
 /.tmp-video/
+/supabase/.temp/
 
 # rendered assets (managed via Supabase Storage)
 /rendered/

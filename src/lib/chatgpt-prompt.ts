@@ -1,4 +1,5 @@
 import type { Deal, DealCopy } from '@/types'
+import { isDiscoveryDeal } from '@/lib/utils'
 
 const STYLE_INSTRUCTIONS: Record<string, string> = {
   supplements: 'Dunkler Hintergrund (fast schwarz), Neon-Grün Akzente (#39ff14), Premium Fitness Aesthetic. Dynamisches Licht von oben links.',
@@ -10,9 +11,10 @@ const STYLE_INSTRUCTIONS: Record<string, string> = {
 }
 
 export function generateChatGptPrompt(deal: Deal, copy: DealCopy): string {
-  if (deal.content_type === 'product_discovery') {
+  if (isDiscoveryDeal(deal)) {
     const style = STYLE_INSTRUCTIONS[deal.kategorie] ?? STYLE_INSTRUCTIONS['default']
-    const facts = deal.product_facts ?? {}
+    const discoveryMeta = deal.copy_data as ({ product_facts?: typeof deal.product_facts } | null)
+    const facts = deal.product_facts ?? discoveryMeta?.product_facts ?? {}
     const protein = facts.protein_serving ? `${facts.protein_serving}g Protein pro Portion` : facts.protein_100g ? `${facts.protein_100g}g Protein pro 100g` : 'Protein-Fakt falls sichtbar'
     const sugar = facts.sugar_serving ? `${facts.sugar_serving}g Zucker pro Portion` : facts.sugar_100g ? `${facts.sugar_100g}g Zucker pro 100g` : 'Zucker-Fakt falls sichtbar'
 

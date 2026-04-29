@@ -34,7 +34,7 @@ const FIELDS = [
 ].join(',')
 
 function getQueries(): string[] {
-  return (process.env.OPENFOODFACTS_QUERIES ?? DEFAULT_QUERIES.join(','))
+  return ((process.env.OPENFOODFACTS_QUERIES?.trim() || DEFAULT_QUERIES.join(',')))
     .split(',')
     .map((q) => q.trim())
     .filter(Boolean)
@@ -51,7 +51,7 @@ async function fetchProducts(query: string, pageSize: number): Promise<OpenFoodF
 
   const response = await fetch(url, {
     headers: {
-      'User-Agent': process.env.OPENFOODFACTS_USER_AGENT ?? 'geiloder/0.1 (contact: hello@geiloder.de)',
+      'User-Agent': process.env.OPENFOODFACTS_USER_AGENT?.trim() || 'geiloder/0.1 (contact: hello@geiloder.de)',
     },
   })
   if (!response.ok) throw new Error(`Open Food Facts HTTP ${response.status}`)
@@ -62,7 +62,8 @@ async function fetchProducts(query: string, pageSize: number): Promise<OpenFoodF
 
 async function importOpenFoodFacts() {
   const supabase = createServiceClient()
-  const pageSize = Number.parseInt(process.env.OPENFOODFACTS_PAGE_SIZE ?? '30', 10)
+  const parsedPageSize = Number.parseInt(process.env.OPENFOODFACTS_PAGE_SIZE?.trim() || '30', 10)
+  const pageSize = Number.isFinite(parsedPageSize) ? parsedPageSize : 30
   const queries = getQueries()
 
   console.log(`Importing Open Food Facts products for ${queries.length} queries...`)
@@ -87,12 +88,12 @@ async function importOpenFoodFacts() {
 
   const { data: existing } = await supabase
     .from('deals')
-    .select('source_name, barcode')
-    .eq('source_name', 'openfoodfacts')
-    .in('barcode', normalized.map((d) => d.barcode))
+    .select('external_id, quelle')
+    .eq('quelle', 'manuell')
+    .in('external_id', normalized.map((d) => d.external_id).filter(Boolean))
 
-  const existingKeys = new Set((existing ?? []).map((d) => `${d.source_name}::${d.barcode}`))
-  const newDeals = normalized.filter((d) => !existingKeys.has(`openfoodfacts::${d.barcode}`))
+  const existingKeys = new Set((existing ?? []).map((d) => `${d.quelle}::${d.external_id}`))
+  const newDeals = normalized.filter((d) => !existingKeys.has(`manuell::${d.external_id}`))
 
   if (newDeals.length === 0) {
     console.log('No new Open Food Facts products to import.')
@@ -100,7 +101,34 @@ async function importOpenFoodFacts() {
   }
 
   for (let i = 0; i < newDeals.length; i += 100) {
-    const batch = newDeals.slice(i, i + 100)
+    const batch = newDeals.slice(i, i + 100).map((deal) => ({
+      external_id: deal.external_id,
+      quelle: deal.quelle,
+      produktname: deal.produktname,
+      marke: deal.marke,
+      shop: deal.shop,
+      kategorie: deal.kategorie,
+      alter_preis: deal.alter_preis,
+      deal_preis: deal.deal_preis,
+      rabatt_prozent: deal.rabatt_prozent,
+      gutschein_code: deal.gutschein_code,
+      verfuegbarkeit: deal.verfuegbarkeit,
+      produktbild_url: deal.produktbild_url,
+      affiliate_link: deal.affiliate_link,
+      landingpage_url: deal.landingpage_url,
+      provision: deal.provision,
+      deal_score: deal.deal_score,
+      status: deal.status,
+      copy_data: {
+        content_type: 'product_discovery',
+        monetization_type: 'none',
+        product_facts: deal.product_facts,
+        attribution_text: deal.attribution_text,
+      },
+      slug: deal.slug,
+      expires_at: deal.expires_at,
+      posted_at: deal.posted_at,
+    }))
     const { error } = await supabase.from('deals').insert(batch)
     if (error) throw error
     console.log(`  Inserted ${batch.length} discovery products`)

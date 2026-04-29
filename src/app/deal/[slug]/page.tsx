@@ -38,7 +38,8 @@ export default async function DealPage({ params }: Props) {
   const discovery = isDiscoveryDeal(deal)
   const similarDeals = await getSimilarDeals(deal, 4)
   const rabattText = deal.rabatt_prozent ? formatDiscount(deal.rabatt_prozent) : null
-  const facts = deal.product_facts ?? {}
+  const discoveryMeta = deal.copy_data as ({ product_facts?: typeof deal.product_facts; attribution_text?: string } | null)
+  const facts = deal.product_facts ?? discoveryMeta?.product_facts ?? {}
 
   return (
     <div className="space-y-12">
@@ -125,7 +126,7 @@ export default async function DealPage({ params }: Props) {
 
           <p className="text-xs text-zinc-600">
             {discovery
-              ? `${deal.attribution_text ?? 'Daten/Bild: Open Food Facts, CC BY-SA'}. Stand: ${new Date(deal.updated_at).toLocaleDateString('de-DE')}.`
+              ? `${deal.attribution_text ?? discoveryMeta?.attribution_text ?? 'Daten/Bild: Open Food Facts, CC BY-SA'}. Stand: ${new Date(deal.updated_at).toLocaleDateString('de-DE')}.`
               : `Anzeige | Affiliate-Link. Preis kann sich ändern. Stand: ${new Date(deal.updated_at).toLocaleDateString('de-DE')}.`}
           </p>
         </div>

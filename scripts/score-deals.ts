@@ -4,7 +4,7 @@ config({ path: '.env.local' })
 import { createServiceClient } from '../src/lib/supabase/server'
 import { scoreDeal, checkAntiSpam } from '../src/lib/scoring'
 import { scoreDiscoveryProduct } from '../src/lib/discovery/scoring'
-import { generateDealSlug } from '../src/lib/utils'
+import { generateDealSlug, isDiscoveryDeal } from '../src/lib/utils'
 import type { Deal, AntiSpamContext } from '../src/types'
 
 async function buildAntiSpamContext(supabase: ReturnType<typeof createServiceClient>): Promise<AntiSpamContext> {
@@ -74,7 +74,7 @@ async function scoreAllNewDeals() {
       continue
     }
 
-    const { score, tier } = deal.content_type === 'product_discovery'
+    const { score, tier } = isDiscoveryDeal(deal)
       ? scoreDiscoveryProduct(deal)
       : scoreDeal(deal)
 

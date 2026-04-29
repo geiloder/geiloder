@@ -6,6 +6,7 @@ import { readFileSync, mkdirSync, writeFileSync } from 'fs'
 import path from 'path'
 import { createServiceClient } from '../src/lib/supabase/server'
 import { uploadSlideToStorage } from './lib/uploader'
+import { isDiscoveryDeal } from '../src/lib/utils'
 import type { Deal, DealCopy, DealKategorie, PostAssets } from '../src/types'
 
 const TEMPLATES_DIR = path.join(process.cwd(), 'templates')
@@ -49,7 +50,7 @@ function fillTemplate(
 }
 
 function isDiscovery(deal: Deal): boolean {
-  return deal.content_type === 'product_discovery' || deal.monetization_type === 'none'
+  return isDiscoveryDeal(deal)
 }
 
 async function renderSlide(

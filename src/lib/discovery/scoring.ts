@@ -31,7 +31,8 @@ export interface DiscoveryScoreDetails {
 }
 
 function factsOf(deal: Deal): ProductFacts {
-  return deal.product_facts ?? {}
+  const discoveryMeta = deal.copy_data as ({ product_facts?: ProductFacts } | null)
+  return deal.product_facts ?? discoveryMeta?.product_facts ?? {}
 }
 
 export function scoreDiscoveryProduct(deal: Deal): DiscoveryScoreDetails {

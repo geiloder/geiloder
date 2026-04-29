@@ -42,6 +42,15 @@ export function hashIp(ip: string): string {
   return Math.abs(hash).toString(36)
 }
 
-export function isDiscoveryDeal(deal: Pick<Deal, 'content_type' | 'monetization_type'>): boolean {
-  return deal.content_type === 'product_discovery' || deal.monetization_type === 'none'
+export function isDiscoveryDeal(
+  deal: Partial<Pick<Deal, 'content_type' | 'monetization_type' | 'quelle' | 'shop' | 'affiliate_link' | 'landingpage_url'>>
+): boolean {
+  const shop = deal.shop?.toLowerCase()
+  const link = `${deal.affiliate_link ?? ''} ${deal.landingpage_url ?? ''}`.toLowerCase()
+  return (
+    deal.content_type === 'product_discovery' ||
+    deal.monetization_type === 'none' ||
+    (deal.quelle === 'manuell' && shop === 'open food facts') ||
+    link.includes('openfoodfacts.org')
+  )
 }

@@ -1,8 +1,10 @@
 import type { Deal } from '@/types'
+import { isDiscoveryDeal } from '@/lib/utils'
 
 export function buildDealCopyPrompt(deal: Deal): string {
-  if (deal.content_type === 'product_discovery') {
-    const facts = deal.product_facts ?? {}
+  if (isDiscoveryDeal(deal)) {
+    const discoveryMeta = deal.copy_data as ({ product_facts?: typeof deal.product_facts } | null)
+    const facts = deal.product_facts ?? discoveryMeta?.product_facts ?? {}
     const protein = facts.protein_serving
       ? `${facts.protein_serving} g Protein pro Portion`
       : facts.protein_100g
