@@ -123,6 +123,7 @@ async function importOpenFoodFacts() {
 
   const byBarcode = new Map<string, OpenFoodFactsProduct>()
   const candidateTarget = targetCount * 4
+  let fetchFailures = 0
 
   for (let queryIndex = 0; queryIndex < queries.length; queryIndex++) {
     const query = queries[queryIndex]
@@ -131,13 +132,25 @@ async function importOpenFoodFacts() {
 
     for (const page of pages) {
       console.log(`  Query: ${query} (page ${page})`)
-      const products = await fetchProductsPage(query, pageSize, page)
+      let products: OpenFoodFactsProduct[] = []
+      try {
+        products = await fetchProductsPage(query, pageSize, page)
+      } catch (error) {
+        fetchFailures++
+        const message = error instanceof Error ? error.message : String(error)
+        console.warn(`  Open Food Facts fetch failed for "${query}" page ${page}: ${message}`)
+        continue
+      }
       for (const product of products) {
         if (product.code && !byBarcode.has(product.code)) byBarcode.set(product.code, product)
       }
       if (byBarcode.size >= candidateTarget) break
     }
     if (byBarcode.size >= candidateTarget) break
+  }
+
+  if (fetchFailures > 0) {
+    console.warn(`Open Food Facts fetch warnings: ${fetchFailures} failed query/page requests`)
   }
 
   const normalized = Array.from(byBarcode.values())
