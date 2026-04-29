@@ -7,10 +7,10 @@ export const dynamic = 'force-dynamic'
 async function getPipelineStats() {
   const supabase = createServiceClient()
   const [discoveryNew, discoveryApproved, discoveryRendered, affiliateDeals] = await Promise.all([
-    supabase.from('deals').select('id', { count: 'exact', head: true }).eq('content_type', 'product_discovery').eq('status', 'new'),
-    supabase.from('deals').select('id', { count: 'exact', head: true }).eq('content_type', 'product_discovery').eq('status', 'approved'),
-    supabase.from('deals').select('id', { count: 'exact', head: true }).eq('content_type', 'product_discovery').eq('status', 'rendered'),
-    supabase.from('deals').select('id', { count: 'exact', head: true }).eq('content_type', 'affiliate_deal'),
+    supabase.from('deals').select('id', { count: 'exact', head: true }).eq('shop', 'Open Food Facts').eq('status', 'new'),
+    supabase.from('deals').select('id', { count: 'exact', head: true }).eq('shop', 'Open Food Facts').eq('status', 'approved'),
+    supabase.from('deals').select('id', { count: 'exact', head: true }).eq('shop', 'Open Food Facts').eq('status', 'rendered'),
+    supabase.from('deals').select('id', { count: 'exact', head: true }).not('shop', 'eq', 'Open Food Facts'),
   ])
 
   return {
