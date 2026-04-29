@@ -14,7 +14,10 @@ export function PipelineActions() {
 
     try {
       const response = await fetch('/api/admin/pipeline/openfoodfacts', { method: 'POST' })
-      const data = await response.json() as { imported?: number; skipped?: number; message?: string; error?: string }
+      const text = await response.text()
+      const data = text
+        ? JSON.parse(text) as { imported?: number; skipped?: number; message?: string; error?: string }
+        : { error: 'Leere Antwort vom Server.' }
 
       if (!response.ok) throw new Error(data.error ?? 'Import fehlgeschlagen')
 

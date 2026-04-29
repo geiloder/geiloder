@@ -5,7 +5,7 @@ import { scoreDiscoveryProduct } from '@/lib/discovery/scoring'
 import type { Deal, DealKategorie, ProductFacts } from '@/types'
 
 export const dynamic = 'force-dynamic'
-export const maxDuration = 60
+export const maxDuration = 30
 
 interface OpenFoodFactsProduct {
   code?: string
@@ -92,6 +92,8 @@ function getQueries(): string[] {
 }
 
 async function fetchProducts(query: string, pageSize: number): Promise<OpenFoodFactsProduct[]> {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 8000)
   const url = new URL('https://world.openfoodfacts.org/cgi/search.pl')
   url.searchParams.set('search_terms', query)
   url.searchParams.set('search_simple', '1')
@@ -100,16 +102,21 @@ async function fetchProducts(query: string, pageSize: number): Promise<OpenFoodF
   url.searchParams.set('page_size', String(pageSize))
   url.searchParams.set('fields', FIELDS)
 
-  const response = await fetch(url, {
-    headers: {
-      'User-Agent': process.env.OPENFOODFACTS_USER_AGENT?.trim() || 'geiloder/0.1 (contact: hello@geiloder.de)',
-    },
-    next: { revalidate: 0 },
-  })
-  if (!response.ok) throw new Error(`Open Food Facts HTTP ${response.status}`)
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': process.env.OPENFOODFACTS_USER_AGENT?.trim() || 'geiloder/0.1 (contact: hello@geiloder.de)',
+      },
+      next: { revalidate: 0 },
+      signal: controller.signal,
+    })
+    if (!response.ok) throw new Error(`Open Food Facts HTTP ${response.status}`)
 
-  const json = await response.json() as { products?: OpenFoodFactsProduct[] }
-  return json.products ?? []
+    const json = await response.json() as { products?: OpenFoodFactsProduct[] }
+    return json.products ?? []
+  } finally {
+    clearTimeout(timeout)
+  }
 }
 
 function normalizeProduct(product: OpenFoodFactsProduct) {
@@ -177,48 +184,68 @@ function normalizeProduct(product: OpenFoodFactsProduct) {
 }
 
 export async function POST(request: NextRequest) {
-  if (!checkAuth(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  try {
+    if (!checkAuth(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const supabase = createServiceClient()
-  const pageSize = Math.min(Number.parseInt(process.env.OPENFOODFACTS_PAGE_SIZE?.trim() || '30', 10) || 30, 50)
-  const productsByBarcode = new Map<string, OpenFoodFactsProduct>()
-
-  for (const query of getQueries()) {
-    const products = await fetchProducts(query, pageSize)
-    for (const product of products) {
-      if (product.code && !productsByBarcode.has(product.code)) productsByBarcode.set(product.code, product)
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return NextResponse.json({ error: 'Supabase-Umgebungsvariablen fehlen in Vercel.' }, { status: 500 })
     }
+
+    const supabase = createServiceClient()
+    const pageSize = Math.min(Number.parseInt(process.env.OPENFOODFACTS_PAGE_SIZE?.trim() || '12', 10) || 12, 20)
+    const productsByBarcode = new Map<string, OpenFoodFactsProduct>()
+    const queries = getQueries().slice(0, 6)
+    const results = await Promise.allSettled(queries.map((query) => fetchProducts(query, pageSize)))
+
+    for (const result of results) {
+      if (result.status !== 'fulfilled') continue
+      for (const product of result.value) {
+        if (product.code && !productsByBarcode.has(product.code)) productsByBarcode.set(product.code, product)
+      }
+    }
+
+    const normalized = Array.from(productsByBarcode.values())
+      .map(normalizeProduct)
+      .filter((deal): deal is NonNullable<typeof deal> => deal !== null)
+
+    if (normalized.length === 0) {
+      const failed = results.filter((result) => result.status === 'rejected').length
+      return NextResponse.json({
+        imported: 0,
+        skipped: 0,
+        message: failed > 0
+          ? `Keine nutzbaren Produkte gefunden. ${failed} Open-Food-Facts-Abfragen sind fehlgeschlagen.`
+          : 'Keine nutzbaren Open-Food-Facts-Produkte gefunden.',
+      })
+    }
+
+    const { data: existing, error: existingError } = await supabase
+      .from('deals')
+      .select('external_id, quelle')
+      .eq('quelle', 'manuell')
+      .in('external_id', normalized.map((d) => d.external_id))
+
+    if (existingError) return NextResponse.json({ error: existingError.message }, { status: 500 })
+
+    const existingKeys = new Set((existing ?? []).map((d) => `${d.quelle}::${d.external_id}`))
+    const newDeals = normalized.filter((d) => !existingKeys.has(`manuell::${d.external_id}`)).slice(0, 30)
+
+    if (newDeals.length === 0) {
+      return NextResponse.json({ imported: 0, skipped: normalized.length, message: 'Keine neuen Produkte gefunden.' })
+    }
+
+    const { error } = await supabase.from('deals').insert(newDeals)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    return NextResponse.json({
+      imported: newDeals.length,
+      skipped: normalized.length - newDeals.length,
+      message: `${newDeals.length} Open-Food-Facts-Produkte importiert und approved.`,
+    })
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : String(error) },
+      { status: 500 },
+    )
   }
-
-  const normalized = Array.from(productsByBarcode.values())
-    .map(normalizeProduct)
-    .filter((deal): deal is NonNullable<typeof deal> => deal !== null)
-
-  if (normalized.length === 0) {
-    return NextResponse.json({ imported: 0, skipped: 0, message: 'Keine nutzbaren Open-Food-Facts-Produkte gefunden.' })
-  }
-
-  const { data: existing, error: existingError } = await supabase
-    .from('deals')
-    .select('external_id, quelle')
-    .eq('quelle', 'manuell')
-    .in('external_id', normalized.map((d) => d.external_id))
-
-  if (existingError) return NextResponse.json({ error: existingError.message }, { status: 500 })
-
-  const existingKeys = new Set((existing ?? []).map((d) => `${d.quelle}::${d.external_id}`))
-  const newDeals = normalized.filter((d) => !existingKeys.has(`manuell::${d.external_id}`)).slice(0, 50)
-
-  if (newDeals.length === 0) {
-    return NextResponse.json({ imported: 0, skipped: normalized.length, message: 'Keine neuen Produkte gefunden.' })
-  }
-
-  const { error } = await supabase.from('deals').insert(newDeals)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
-  return NextResponse.json({
-    imported: newDeals.length,
-    skipped: normalized.length - newDeals.length,
-    message: `${newDeals.length} Open-Food-Facts-Produkte importiert und approved.`,
-  })
 }
