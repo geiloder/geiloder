@@ -17,7 +17,9 @@ export function SlideUploadForm({ dealId, initialReady = false, initialPosted = 
   const [done, setDone] = useState(initialReady)
   const [posted, setPosted] = useState(initialPosted)
   const [posting, setPosting] = useState(false)
+  const [resetting, setResetting] = useState(false)
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
 
   function handleFile(index: number, file: File | null) {
     if (!file) return
@@ -30,6 +32,13 @@ export function SlideUploadForm({ dealId, initialReady = false, initialPosted = 
     setPreviews(newPreviews)
   }
 
+  function startSlideReplacement() {
+    setFiles([null, null, null, null])
+    setPreviews([null, null, null, null])
+    setError('')
+    setDone(false)
+  }
+
   async function handleUpload() {
     if (files.some((f) => !f)) {
       setError('Bitte alle 4 Slides hochladen')
@@ -38,6 +47,7 @@ export function SlideUploadForm({ dealId, initialReady = false, initialPosted = 
 
     setUploading(true)
     setError('')
+    setNotice('')
 
     try {
       const formData = new FormData()
@@ -78,6 +88,7 @@ export function SlideUploadForm({ dealId, initialReady = false, initialPosted = 
   async function handlePublish() {
     setPosting(true)
     setError('')
+    setNotice('')
 
     try {
       const res = await fetch('/api/admin/posts/publish-instagram', {
@@ -99,6 +110,43 @@ export function SlideUploadForm({ dealId, initialReady = false, initialPosted = 
     }
   }
 
+  async function handleResetPublishedPost() {
+    const confirmed = window.confirm(
+      'Diesen Post in der App zurücksetzen? Er verschwindet von der Website. Den Instagram-Post musst du danach in Instagram selbst löschen.',
+    )
+    if (!confirmed) return
+
+    setResetting(true)
+    setError('')
+    setNotice('')
+
+    try {
+      const res = await fetch('/api/admin/posts/reset-instagram', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dealId }),
+      })
+      const data = await res.json().catch(() => null) as {
+        error?: string
+        manualInstagramDeletionRequired?: boolean
+      } | null
+
+      if (res.ok) {
+        setPosted(false)
+        startSlideReplacement()
+        setNotice(data?.manualInstagramDeletionRequired
+          ? 'Aus der Website entfernt. Bitte den Instagram-Post zusätzlich direkt in Instagram löschen und lade danach neue Slides hoch.'
+          : 'Post wurde in der App zurückgesetzt. Du kannst jetzt neue Slides hochladen.')
+      } else {
+        setError(data?.error ?? 'Zurücksetzen fehlgeschlagen')
+      }
+    } catch {
+      setError('Zurücksetzen fehlgeschlagen. Bitte erneut versuchen.')
+    } finally {
+      setResetting(false)
+    }
+  }
+
   if (done) {
     return (
       <div className="p-4 bg-green-400/10 border border-green-400/30 rounded-lg text-center space-y-3">
@@ -111,15 +159,35 @@ export function SlideUploadForm({ dealId, initialReady = false, initialPosted = 
           </p>
         </div>
 
+        {notice && <p className="text-yellow-300 text-sm">{notice}</p>}
         {error && <p className="text-red-400 text-sm">{error}</p>}
 
         {!posted && (
+          <div className="space-y-2">
+            <button
+              onClick={handlePublish}
+              disabled={posting}
+              className="w-full bg-green-400 hover:bg-green-300 text-black font-bold py-3 rounded-lg transition-colors disabled:opacity-40"
+            >
+              {posting ? 'Poste auf Instagram...' : 'Auf Instagram posten'}
+            </button>
+            <button
+              onClick={startSlideReplacement}
+              disabled={posting}
+              className="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-bold py-3 rounded-lg transition-colors disabled:opacity-40"
+            >
+              Andere Slides hochladen
+            </button>
+          </div>
+        )}
+
+        {posted && (
           <button
-            onClick={handlePublish}
-            disabled={posting}
-            className="w-full bg-green-400 hover:bg-green-300 text-black font-bold py-3 rounded-lg transition-colors disabled:opacity-40"
+            onClick={handleResetPublishedPost}
+            disabled={resetting}
+            className="w-full bg-red-400/15 hover:bg-red-400/25 text-red-300 border border-red-400/30 font-bold py-3 rounded-lg transition-colors disabled:opacity-40"
           >
-            {posting ? 'Poste auf Instagram...' : 'Auf Instagram posten'}
+            {resetting ? 'Setze zurück...' : 'Post zurücksetzen / von Website entfernen'}
           </button>
         )}
 
@@ -155,6 +223,7 @@ export function SlideUploadForm({ dealId, initialReady = false, initialPosted = 
         ))}
       </div>
 
+      {notice && <p className="text-yellow-300 text-sm">{notice}</p>}
       {error && <p className="text-red-400 text-sm">{error}</p>}
 
       <button
