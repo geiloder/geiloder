@@ -2,7 +2,6 @@ export interface PublishInstagramCarouselInput {
   accessToken: string
   igUserId: string
   slideUrls: string[]
-  storyUrl?: string | null
   caption: string
   fetchImpl?: typeof fetch
 }
@@ -11,20 +10,6 @@ export interface PublishInstagramCarouselResult {
   carouselContainerId: string
   mediaIds: string[]
   publishedMediaId: string
-  storyContainerId?: string
-  publishedStoryId?: string
-}
-
-export interface PublishInstagramStoryInput {
-  accessToken: string
-  igUserId: string
-  storyUrl: string
-  fetchImpl?: typeof fetch
-}
-
-export interface PublishInstagramStoryResult {
-  storyContainerId: string
-  publishedStoryId: string
 }
 
 const GRAPH_BASE_URL = 'https://graph.instagram.com/v25.0'
@@ -33,7 +18,6 @@ export async function publishInstagramCarousel({
   accessToken,
   igUserId,
   slideUrls,
-  storyUrl,
   caption,
   fetchImpl = fetch,
 }: PublishInstagramCarouselInput): Promise<PublishInstagramCarouselResult> {
@@ -76,62 +60,10 @@ export async function publishInstagramCarousel({
     },
   )
 
-  const result: PublishInstagramCarouselResult = {
+  return {
     carouselContainerId: carousel.id,
     mediaIds,
     publishedMediaId: published.id,
-  }
-
-  const storyImageUrl = storyUrl?.trim()
-  if (storyImageUrl) {
-    const story = await publishInstagramStory({
-      accessToken,
-      igUserId,
-      storyUrl: storyImageUrl,
-      fetchImpl,
-    })
-
-    result.storyContainerId = story.storyContainerId
-    result.publishedStoryId = story.publishedStoryId
-  }
-
-  return result
-}
-
-export async function publishInstagramStory({
-  accessToken,
-  igUserId,
-  storyUrl,
-  fetchImpl = fetch,
-}: PublishInstagramStoryInput): Promise<PublishInstagramStoryResult> {
-  if (!accessToken.trim()) throw new Error('Instagram access token missing')
-  if (!igUserId.trim()) throw new Error('Instagram user id missing')
-
-  const storyImageUrl = storyUrl.trim()
-  if (!storyImageUrl) throw new Error('Instagram story url missing')
-
-  const story = await postToInstagram<{ id: string }>(
-    fetchImpl,
-    `${GRAPH_BASE_URL}/${igUserId}/media`,
-    {
-      image_url: storyImageUrl,
-      media_type: 'STORIES',
-      access_token: accessToken,
-    },
-  )
-
-  const publishedStory = await postToInstagram<{ id: string }>(
-    fetchImpl,
-    `${GRAPH_BASE_URL}/${igUserId}/media_publish`,
-    {
-      creation_id: story.id,
-      access_token: accessToken,
-    },
-  )
-
-  return {
-    storyContainerId: story.id,
-    publishedStoryId: publishedStory.id,
   }
 }
 
