@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
   const post = postData as Post | null
   const assets = post?.assets as PostAssets | null
   const slideUrls = assets?.slides ?? []
-  const storyUrl = assets?.story?.[0] ?? slideUrls[0]
+  const storyUrl = assets?.story?.[0] ?? null
 
   if (!post || slideUrls.length !== 4) {
     return NextResponse.json({ error: 'Bitte zuerst genau 4 Slides hochladen.' }, { status: 400 })

@@ -60,6 +60,11 @@ export function SlideUploadForm({ dealId, initialReady = false, initialPosted = 
         formData.set(`slide${i + 1}`, optimized)
       }
 
+      const firstSlide = files[0]
+      if (firstSlide) {
+        formData.set('story1', await createStoryFromSlide(firstSlide))
+      }
+
       const controller = new AbortController()
       const timeout = window.setTimeout(() => controller.abort(), 60_000)
 
@@ -261,6 +266,99 @@ async function optimizeSlide(file: File, index: number): Promise<File> {
   if (!blob) throw new Error('Bild konnte nicht komprimiert werden')
 
   return new File([blob], `carousel-slide-${index + 1}.jpg`, { type: 'image/jpeg' })
+}
+
+async function createStoryFromSlide(file: File): Promise<File> {
+  const dataUrl = await readFileAsDataUrl(file)
+  const image = await loadImage(dataUrl)
+  const canvas = document.createElement('canvas')
+  canvas.width = 1080
+  canvas.height = 1920
+
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('Story konnte nicht vorbereitet werden')
+
+  ctx.fillStyle = '#050505'
+  ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+  drawCoverImage(ctx, image, canvas.width, canvas.height, {
+    filter: 'blur(34px) brightness(0.42) saturate(1.25)',
+  })
+
+  const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height)
+  gradient.addColorStop(0, 'rgba(0,0,0,0.42)')
+  gradient.addColorStop(0.5, 'rgba(0,0,0,0.08)')
+  gradient.addColorStop(1, 'rgba(0,0,0,0.5)')
+  ctx.fillStyle = gradient
+  ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+  const safeTop = 190
+  const safeBottom = 250
+  const maxWidth = canvas.width - 96
+  const maxHeight = canvas.height - safeTop - safeBottom
+  const scale = Math.min(maxWidth / image.width, maxHeight / image.height)
+  const width = Math.round(image.width * scale)
+  const height = Math.round(image.height * scale)
+  const x = Math.round((canvas.width - width) / 2)
+  const y = Math.round(safeTop + (maxHeight - height) / 2)
+
+  ctx.save()
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.65)'
+  ctx.shadowBlur = 42
+  ctx.shadowOffsetY = 18
+  roundRect(ctx, x, y, width, height, 26)
+  ctx.fillStyle = '#050505'
+  ctx.fill()
+  ctx.clip()
+  ctx.drawImage(image, x, y, width, height)
+  ctx.restore()
+
+  ctx.strokeStyle = 'rgba(163, 255, 18, 0.22)'
+  ctx.lineWidth = 3
+  roundRect(ctx, x + 1.5, y + 1.5, width - 3, height - 3, 24)
+  ctx.stroke()
+
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92))
+  if (!blob) throw new Error('Story konnte nicht komprimiert werden')
+
+  return new File([blob], 'story-slide-1.jpg', { type: 'image/jpeg' })
+}
+
+function drawCoverImage(
+  ctx: CanvasRenderingContext2D,
+  image: HTMLImageElement,
+  canvasWidth: number,
+  canvasHeight: number,
+  options?: { filter?: string },
+) {
+  const scale = Math.max(canvasWidth / image.width, canvasHeight / image.height)
+  const width = image.width * scale
+  const height = image.height * scale
+  const x = (canvasWidth - width) / 2
+  const y = (canvasHeight - height) / 2
+
+  ctx.save()
+  if (options?.filter) ctx.filter = options.filter
+  ctx.drawImage(image, x, y, width, height)
+  ctx.restore()
+}
+
+function roundRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number,
+) {
+  const r = Math.min(radius, width / 2, height / 2)
+  ctx.beginPath()
+  ctx.moveTo(x + r, y)
+  ctx.arcTo(x + width, y, x + width, y + height, r)
+  ctx.arcTo(x + width, y + height, x, y + height, r)
+  ctx.arcTo(x, y + height, x, y, r)
+  ctx.arcTo(x, y, x + width, y, r)
+  ctx.closePath()
 }
 
 function readFileAsDataUrl(file: File): Promise<string> {
