@@ -127,6 +127,9 @@ export interface PostAssets {
     mediaIds?: string[]
     carouselContainerId?: string
     publishedMediaId?: string
+    storyContainerId?: string
+    publishedStoryId?: string
+    storySourceUrl?: string
   }
   last_error?: string
 }

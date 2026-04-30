@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { NextRequest, NextResponse } from 'next/server'
 import dotenv from 'dotenv'
-import { publishInstagramCarousel } from '@/lib/instagram/publisher'
+import { publishInstagramCarousel, publishInstagramStory } from '@/lib/instagram/publisher'
 import { createServiceClient } from '@/lib/supabase/server'
 import type { Deal, DealCopy, Post, PostAssets } from '@/types'
 
@@ -63,56 +63,132 @@ export async function POST(request: NextRequest) {
   const post = postData as Post | null
   const assets = post?.assets as PostAssets | null
   const slideUrls = assets?.slides ?? []
+  const storyUrl = assets?.story?.[0] ?? slideUrls[0]
 
   if (!post || slideUrls.length !== 4) {
     return NextResponse.json({ error: 'Bitte zuerst genau 4 Slides hochladen.' }, { status: 400 })
   }
 
-  if (post.status === 'posted') {
-    return NextResponse.json({ ok: true, alreadyPosted: true, externalPostId: post.external_post_id })
+  const currentAssets = assets ?? {}
+  let instagramAssets = currentAssets.instagram ?? {}
+  let publishedMediaId = post.external_post_id ?? instagramAssets.publishedMediaId ?? null
+
+  if (post.status === 'posted' && instagramAssets.publishedStoryId) {
+    return NextResponse.json({ ok: true, alreadyPosted: true, externalPostId: publishedMediaId })
   }
 
   try {
-    const result = await publishInstagramCarousel({
-      accessToken,
-      igUserId,
-      slideUrls,
-      caption: buildCaption(deal.copy_data),
+    if (!publishedMediaId) {
+      const result = await publishInstagramCarousel({
+        accessToken,
+        igUserId,
+        slideUrls,
+        caption: buildCaption(deal.copy_data),
+      })
+
+      publishedMediaId = result.publishedMediaId
+      instagramAssets = {
+        ...instagramAssets,
+        mediaIds: result.mediaIds,
+        carouselContainerId: result.carouselContainerId,
+        publishedMediaId: result.publishedMediaId,
+      }
+
+      await supabase.from('posts').update({
+        status: 'posted',
+        posted_at: new Date().toISOString(),
+        external_post_id: result.publishedMediaId,
+        assets: withoutLastError({
+          ...currentAssets,
+          instagram: instagramAssets,
+        }),
+      }).eq('id', post.id)
+
+      await supabase.from('deals').update({
+        status: 'posted',
+        posted_at: new Date().toISOString(),
+      }).eq('id', deal.id)
+    }
+
+    if (storyUrl && !instagramAssets.publishedStoryId) {
+      try {
+        const storyResult = await publishInstagramStory({
+          accessToken,
+          igUserId,
+          storyUrl,
+        })
+
+        instagramAssets = {
+          ...instagramAssets,
+          storyContainerId: storyResult.storyContainerId,
+          publishedStoryId: storyResult.publishedStoryId,
+          storySourceUrl: storyUrl,
+        }
+
+        await supabase.from('posts').update({
+          status: 'posted',
+          external_post_id: publishedMediaId,
+          assets: withoutLastError({
+            ...currentAssets,
+            instagram: instagramAssets,
+          }),
+        }).eq('id', post.id)
+
+        return NextResponse.json({
+          ok: true,
+          externalPostId: publishedMediaId,
+          ...instagramAssets,
+        })
+      } catch (storyError) {
+        const message = storyError instanceof Error ? storyError.message : 'Instagram story publish failed'
+
+        await supabase.from('posts').update({
+          status: 'posted',
+          external_post_id: publishedMediaId,
+          assets: {
+            ...currentAssets,
+            instagram: instagramAssets,
+            last_error: `Story konnte nicht gepostet werden: ${message}`,
+          },
+        }).eq('id', post.id)
+
+        return NextResponse.json({
+          error: `Carousel wurde gepostet, aber die Story konnte nicht veröffentlicht werden: ${message}`,
+          externalPostId: publishedMediaId,
+          ...instagramAssets,
+        }, { status: 500 })
+      }
+    }
+
+    return NextResponse.json({
+      ok: true,
+      externalPostId: publishedMediaId,
+      ...instagramAssets,
     })
-
-    await supabase.from('posts').update({
-      status: 'posted',
-      posted_at: new Date().toISOString(),
-      external_post_id: result.publishedMediaId,
-      assets: {
-        ...assets,
-        instagram: {
-          mediaIds: result.mediaIds,
-          carouselContainerId: result.carouselContainerId,
-          publishedMediaId: result.publishedMediaId,
-        },
-      },
-    }).eq('id', post.id)
-
-    await supabase.from('deals').update({
-      status: 'posted',
-      posted_at: new Date().toISOString(),
-    }).eq('id', deal.id)
-
-    return NextResponse.json({ ok: true, ...result })
   } catch (error) {
+    const message = error instanceof Error ? error.message : 'Instagram publish failed'
+
     await supabase.from('posts').update({
-      status: 'failed',
+      status: publishedMediaId ? 'posted' : 'failed',
+      external_post_id: publishedMediaId,
       assets: {
-        ...assets,
-        last_error: error instanceof Error ? error.message : 'Instagram publish failed',
+        ...currentAssets,
+        ...(publishedMediaId ? { instagram: instagramAssets } : {}),
+        last_error: message,
       },
     }).eq('id', post.id)
 
     return NextResponse.json({
-      error: error instanceof Error ? error.message : 'Instagram publish failed',
+      error: message,
+      ...(publishedMediaId ? { externalPostId: publishedMediaId } : {}),
     }, { status: 500 })
   }
+}
+
+function withoutLastError(assets: PostAssets): PostAssets {
+  const cleanAssets: PostAssets = { ...assets }
+  delete cleanAssets.last_error
+  return cleanAssets
 }
 
 function buildCaption(copy: DealCopy | null): string {
