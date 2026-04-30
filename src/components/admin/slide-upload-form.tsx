@@ -4,15 +4,19 @@ import Image from 'next/image'
 
 interface Props {
   dealId: string
+  initialReady?: boolean
+  initialPosted?: boolean
 }
 
 const SLIDE_LABELS = ['Slide 1 – Hero', 'Slide 2 – Benefits', 'Slide 3 – CTA', 'Slide 4 – Humor']
 
-export function SlideUploadForm({ dealId }: Props) {
+export function SlideUploadForm({ dealId, initialReady = false, initialPosted = false }: Props) {
   const [files, setFiles] = useState<(File | null)[]>([null, null, null, null])
   const [previews, setPreviews] = useState<(string | null)[]>([null, null, null, null])
   const [uploading, setUploading] = useState(false)
-  const [done, setDone] = useState(false)
+  const [done, setDone] = useState(initialReady)
+  const [posted, setPosted] = useState(initialPosted)
+  const [posting, setPosting] = useState(false)
   const [error, setError] = useState('')
 
   function handleFile(index: number, file: File | null) {
@@ -35,30 +39,87 @@ export function SlideUploadForm({ dealId }: Props) {
     setUploading(true)
     setError('')
 
-    const formData = new FormData()
-    formData.set('dealId', dealId)
-    files.forEach((f, i) => { if (f) formData.set(`slide${i + 1}`, f) })
+    try {
+      const formData = new FormData()
+      formData.set('dealId', dealId)
 
-    const res = await fetch('/api/admin/deals/upload-slides', {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i]
+        if (!file) continue
+        const optimized = await optimizeSlide(file, i)
+        formData.set(`slide${i + 1}`, optimized)
+      }
+
+      const controller = new AbortController()
+      const timeout = window.setTimeout(() => controller.abort(), 60_000)
+
+      const res = await fetch('/api/admin/deals/upload-slides', {
+        method: 'POST',
+        body: formData,
+        signal: controller.signal,
+      })
+      window.clearTimeout(timeout)
+
+      if (res.ok) {
+        setDone(true)
+      } else {
+        const data = await res.json().catch(() => null) as { error?: string } | null
+        setError(data?.error ?? 'Upload fehlgeschlagen')
+      }
+    } catch (err) {
+      setError(err instanceof Error && err.name === 'AbortError'
+        ? 'Upload dauert zu lange. Bitte Seite neu laden und erneut versuchen.'
+        : 'Upload fehlgeschlagen. Bitte Seite neu laden und erneut versuchen.')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  async function handlePublish() {
+    setPosting(true)
+    setError('')
+
+    const res = await fetch('/api/admin/posts/publish-instagram', {
       method: 'POST',
-      body: formData,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dealId }),
     })
 
     if (res.ok) {
-      setDone(true)
+      setPosted(true)
     } else {
-      const data = await res.json() as { error: string }
-      setError(data.error ?? 'Upload fehlgeschlagen')
+      const data = await res.json() as { error?: string }
+      setError(data.error ?? 'Instagram-Post fehlgeschlagen')
     }
-    setUploading(false)
+
+    setPosting(false)
   }
 
   if (done) {
     return (
-      <div className="p-4 bg-green-400/10 border border-green-400/30 rounded-lg text-center">
-        <p className="text-green-400 font-bold text-lg">✓ Slides hochgeladen</p>
-        <p className="text-zinc-400 text-sm mt-1">Deal ist jetzt ready zum Posten.</p>
-        <a href="/admin/deals?status=rendered" className="mt-3 inline-block text-sm text-green-400 underline">
+      <div className="p-4 bg-green-400/10 border border-green-400/30 rounded-lg text-center space-y-3">
+        <div>
+          <p className="text-green-400 font-bold text-lg">
+            {posted ? '✓ Auf Instagram gepostet' : '✓ Slides hochgeladen'}
+          </p>
+          <p className="text-zinc-400 text-sm mt-1">
+            {posted ? 'Der Carousel-Post ist veröffentlicht.' : 'Deal ist jetzt ready zum Posten.'}
+          </p>
+        </div>
+
+        {error && <p className="text-red-400 text-sm">{error}</p>}
+
+        {!posted && (
+          <button
+            onClick={handlePublish}
+            disabled={posting}
+            className="w-full bg-green-400 hover:bg-green-300 text-black font-bold py-3 rounded-lg transition-colors disabled:opacity-40"
+          >
+            {posting ? 'Poste auf Instagram...' : 'Auf Instagram posten'}
+          </button>
+        )}
+
+        <a href="/admin/deals?status=rendered" className="inline-block text-sm text-green-400 underline">
           Zurück zur Deal-Liste →
         </a>
       </div>
@@ -101,4 +162,48 @@ export function SlideUploadForm({ dealId }: Props) {
       </button>
     </div>
   )
+}
+
+async function optimizeSlide(file: File, index: number): Promise<File> {
+  const dataUrl = await readFileAsDataUrl(file)
+  const image = await loadImage(dataUrl)
+  const canvas = document.createElement('canvas')
+  canvas.width = 1080
+  canvas.height = 1350
+
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('Bild konnte nicht vorbereitet werden')
+
+  ctx.fillStyle = '#050505'
+  ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+  const scale = Math.min(canvas.width / image.width, canvas.height / image.height)
+  const width = image.width * scale
+  const height = image.height * scale
+  const x = (canvas.width - width) / 2
+  const y = (canvas.height - height) / 2
+  ctx.drawImage(image, x, y, width, height)
+
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.9))
+  if (!blob) throw new Error('Bild konnte nicht komprimiert werden')
+
+  return new File([blob], `carousel-slide-${index + 1}.jpg`, { type: 'image/jpeg' })
+}
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result))
+    reader.onerror = () => reject(new Error('Bild konnte nicht gelesen werden'))
+    reader.readAsDataURL(file)
+  })
+}
+
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new window.Image()
+    image.onload = () => resolve(image)
+    image.onerror = () => reject(new Error('Bild konnte nicht geladen werden'))
+    image.src = src
+  })
 }

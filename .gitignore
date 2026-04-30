@@ -25,6 +25,9 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
+.secrets
+.secrets.local
+.secrets.*.local
 
 # playwright
 /test-results/

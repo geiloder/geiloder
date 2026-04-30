@@ -6,7 +6,7 @@ import { formatPrice, formatDiscount } from '@/lib/utils'
 import { CopyPromptButton } from '@/components/admin/copy-prompt-button'
 import { SlideUploadForm } from '@/components/admin/slide-upload-form'
 import { ImageUpdateForm } from '@/components/admin/image-update-form'
-import type { Deal, DealCopy } from '@/types'
+import type { Deal, DealCopy, Post } from '@/types'
 
 interface Props {
   params: Promise<{ dealId: string }>
@@ -21,6 +21,15 @@ export default async function DealPrepPage({ params }: Props) {
 
   const deal = data as Deal
   const copy = deal.copy_data as DealCopy | null
+  const { data: postData } = await supabase
+    .from('posts')
+    .select('*')
+    .eq('deal_id', deal.id)
+    .eq('plattform', 'instagram')
+    .eq('post_type', 'carousel')
+    .maybeSingle()
+
+  const post = postData as Post | null
 
   if (!copy) {
     return (
@@ -123,7 +132,11 @@ export default async function DealPrepPage({ params }: Props) {
         <p className="text-zinc-500 text-sm mb-4">
           Die 4 von ChatGPT generierten Slides hier hochladen. Reihenfolge: Slide 1 (Hero) → Slide 2 (Benefits) → Slide 3 (CTA) → Slide 4 (Humor).
         </p>
-        <SlideUploadForm dealId={deal.id} />
+        <SlideUploadForm
+          dealId={deal.id}
+          initialReady={post?.status === 'pending' || post?.status === 'failed'}
+          initialPosted={post?.status === 'posted' || deal.status === 'posted'}
+        />
       </div>
     </div>
   )

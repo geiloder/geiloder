@@ -123,6 +123,12 @@ export interface PostAssets {
   story?: string[]
   video?: string | null
   thumbnail?: string | null
+  instagram?: {
+    mediaIds?: string[]
+    carouselContainerId?: string
+    publishedMediaId?: string
+  }
+  last_error?: string
 }
 
 export interface Click {

@@ -21,11 +21,13 @@ export async function POST(request: NextRequest) {
     if (!file) continue
 
     const buffer = Buffer.from(await file.arrayBuffer())
-    const storagePath = `deals/${dealId}/carousel_slide${i}.png`
+    const contentType = file.type || 'image/jpeg'
+    const extension = contentType.includes('png') ? 'png' : 'jpg'
+    const storagePath = `deals/${dealId}/carousel_slide${i}.${extension}`
 
     const { error } = await supabase.storage
       .from('assets')
-      .upload(storagePath, buffer, { contentType: 'image/png', upsert: true })
+      .upload(storagePath, buffer, { contentType, upsert: true })
 
     if (error) {
       return NextResponse.json({ error: `Slide ${i} upload failed: ${error.message}` }, { status: 500 })
