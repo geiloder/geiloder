@@ -293,7 +293,7 @@ async function createStoryFromSlide(file: File): Promise<File> {
   ctx.fillRect(0, 0, canvas.width, canvas.height)
 
   const safeTop = 190
-  const safeBottom = 250
+  const safeBottom = 390
   const maxWidth = canvas.width - 96
   const maxHeight = canvas.height - safeTop - safeBottom
   const scale = Math.min(maxWidth / image.width, maxHeight / image.height)
@@ -318,10 +318,42 @@ async function createStoryFromSlide(file: File): Promise<File> {
   roundRect(ctx, x + 1.5, y + 1.5, width - 3, height - 3, 24)
   ctx.stroke()
 
+  drawStoryProfileCta(ctx, canvas.width, canvas.height)
+
   const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92))
   if (!blob) throw new Error('Story konnte nicht komprimiert werden')
 
   return new File([blob], 'story-slide-1.jpg', { type: 'image/jpeg' })
+}
+
+function drawStoryProfileCta(ctx: CanvasRenderingContext2D, canvasWidth: number, canvasHeight: number) {
+  const width = 760
+  const height = 116
+  const x = (canvasWidth - width) / 2
+  const y = canvasHeight - 320
+
+  ctx.save()
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.55)'
+  ctx.shadowBlur = 28
+  ctx.shadowOffsetY = 12
+  roundRect(ctx, x, y, width, height, 34)
+  ctx.fillStyle = 'rgba(5, 5, 5, 0.88)'
+  ctx.fill()
+  ctx.strokeStyle = 'rgba(163, 255, 18, 0.78)'
+  ctx.lineWidth = 3
+  ctx.stroke()
+
+  ctx.shadowColor = 'transparent'
+  ctx.fillStyle = '#a3ff12'
+  ctx.font = '900 30px Arial, Helvetica, sans-serif'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillText('NEUER POST LIVE', canvasWidth / 2, y + 39)
+
+  ctx.fillStyle = '#ffffff'
+  ctx.font = '800 38px Arial, Helvetica, sans-serif'
+  ctx.fillText('Zum Beitrag im Profil', canvasWidth / 2, y + 78)
+  ctx.restore()
 }
 
 function drawCoverImage(

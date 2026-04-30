@@ -90,6 +90,7 @@ async function renderSlide(
     PRODUKTBILD_URL: deal.produktbild_url ?? '',
     MODE_LABEL: isDiscovery(deal) ? 'PRODUKT-CHECK' : 'TOP DEAL',
     HERO_CTA: isDiscovery(deal) ? 'GEIL ODER?' : 'JETZT DEAL ANSEHEN',
+    STORY_CTA: size.height === STORY_SIZE.height ? 'NEUER POST LIVE · ZUM BEITRAG IM PROFIL' : '',
     FOOTER_LINK: isDiscovery(deal)
       ? 'Unbezahlt recherchiert • Kein Affiliate-Link'
       : 'Link im Profil • @geiloder.deals',
