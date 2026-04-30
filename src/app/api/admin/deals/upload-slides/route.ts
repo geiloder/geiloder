@@ -15,6 +15,7 @@ export async function POST(request: NextRequest) {
 
   const supabase = createServiceClient()
   const slideUrls: string[] = []
+  const uploadId = `${Date.now()}-${crypto.randomUUID()}`
 
   for (let i = 1; i <= 4; i++) {
     const file = formData.get(`slide${i}`) as File | null
@@ -23,11 +24,11 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(await file.arrayBuffer())
     const contentType = file.type || 'image/jpeg'
     const extension = contentType.includes('png') ? 'png' : 'jpg'
-    const storagePath = `deals/${dealId}/carousel_slide${i}.${extension}`
+    const storagePath = `deals/${dealId}/manual-carousel/${uploadId}/slide${i}.${extension}`
 
     const { error } = await supabase.storage
       .from('assets')
-      .upload(storagePath, buffer, { contentType, upsert: true })
+      .upload(storagePath, buffer, { contentType, upsert: false })
 
     if (error) {
       return NextResponse.json({ error: `Slide ${i} upload failed: ${error.message}` }, { status: 500 })

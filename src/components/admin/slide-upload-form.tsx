@@ -79,20 +79,24 @@ export function SlideUploadForm({ dealId, initialReady = false, initialPosted = 
     setPosting(true)
     setError('')
 
-    const res = await fetch('/api/admin/posts/publish-instagram', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ dealId }),
-    })
+    try {
+      const res = await fetch('/api/admin/posts/publish-instagram', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dealId }),
+      })
 
-    if (res.ok) {
-      setPosted(true)
-    } else {
-      const data = await res.json() as { error?: string }
-      setError(data.error ?? 'Instagram-Post fehlgeschlagen')
+      if (res.ok) {
+        setPosted(true)
+      } else {
+        const data = await res.json() as { error?: string }
+        setError(data.error ?? 'Instagram-Post fehlgeschlagen')
+      }
+    } catch {
+      setError('Instagram-Post fehlgeschlagen. Bitte erneut versuchen.')
+    } finally {
+      setPosting(false)
     }
-
-    setPosting(false)
   }
 
   if (done) {
